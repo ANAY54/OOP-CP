@@ -2,6 +2,16 @@ package com.zesto.model;
 
 import java.util.Objects;
 
+/**
+ * OOP CONCEPTS:
+ *   - Abstract Class (abstract calculatePrice and getCategory force subclass to define behaviour)
+ *   - Inheritance base (VegItem, NonVegItem, Beverage all extend this)
+ *   - Comparable interface (compareTo by price — enables sorting)
+ *   - Constructor Overloading (with/without description)
+ *   - Encapsulation (private id, final setBasePrice validates input)
+ *   - final method (setBasePrice — cannot be overridden)
+ *   - Static counter (idCounter — auto-increments across all FoodItem instances)
+ */
 public abstract class FoodItem implements Comparable<FoodItem> {
 
     private static int idCounter = 0;

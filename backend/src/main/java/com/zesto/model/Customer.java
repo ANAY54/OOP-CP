@@ -1,5 +1,16 @@
 package com.zesto.model;
 
+/**
+ * OOP CONCEPTS:
+ *   - Inheritance (extends User)
+ *   - Interface (implements Discountable)
+ *   - Constructor Overloading (two constructors — with/without address)
+ *   - super keyword (calls User constructor)
+ *   - this keyword (this(name, email, "Not set") delegation)
+ *   - Method Overloading (addLoyaltyPoints with and without reason)
+ *   - Method Overriding (@Override getRole, applyDiscount, discountInfo, equals, hashCode, toString)
+ *   - Encapsulation (private loyaltyPoints, getters only)
+ */
 public class Customer extends User implements Discountable {
 
     private String address;

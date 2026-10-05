@@ -1,5 +1,11 @@
 package com.zesto.model;
 
+/**
+ * OOP CONCEPTS:
+ *   - Inheritance (extends User — polymorphism: same type as Customer at runtime)
+ *   - Method Overriding (@Override getRole, toString)
+ *   - Encapsulation (vehicle, available fields private)
+ */
 public class DeliveryPartner extends User {
 
     private String vehicle;

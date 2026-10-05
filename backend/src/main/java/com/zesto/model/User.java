@@ -1,5 +1,15 @@
 package com.zesto.model;
 
+/**
+ * OOP CONCEPTS:
+ *   - Abstract Class (cannot be instantiated directly)
+ *   - Encapsulation (private fields with public getters/final setters)
+ *   - Inheritance base (Customer and DeliveryPartner extend this)
+ *   - Static variables (idCounter, totalUsers — class-level, shared)
+ *   - final methods (setName, setEmail — cannot be overridden)
+ *   - Abstract method (getRole — subclasses MUST implement)
+ *   - this keyword (used in setters)
+ */
 public abstract class User {
 
     private static int idCounter = 1000;

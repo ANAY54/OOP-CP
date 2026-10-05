@@ -1,5 +1,12 @@
 package com.zesto.model;
 
+/**
+ * OOP CONCEPTS:
+ *   - Enum with behaviour (next() method transitions between states)
+ *   - State Machine pattern (each constant represents a state)
+ *   - Encapsulation (label private, getLabel() public)
+ *   - Constructor (enum constructor sets label)
+ */
 public enum OrderStatus {
     PLACED("Order placed"),
     PREPARING("Restaurant is preparing your food"),
