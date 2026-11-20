@@ -1,10 +1,17 @@
 package com.zesto;
 
 import com.zesto.model.Bill;
+import com.zesto.model.BusinessOwner;
+import com.zesto.model.BusinessType;
+import com.zesto.model.Cuisine;
 import com.zesto.model.Customer;
+import com.zesto.model.FoodItem;
+import com.zesto.model.PuneArea;
 import com.zesto.model.Restaurant;
+import com.zesto.model.VegItem;
 import com.zesto.service.BillSplitter;
 import com.zesto.service.DataCatalogService;
+import com.zesto.service.MerchantAnalytics;
 import com.zesto.service.PricingPolicy;
 import com.zesto.service.SampleRestaurantProvider;
 import com.zesto.service.planner.GreedyStrategy;
@@ -48,6 +55,7 @@ public class DemoTestRunner {
         testDataCatalog();
         testMealPlannerStrategies();
         testBillSplitterInvariant();
+        testMerchantPartnerLifecycle();
 
         System.out.println("==================================================");
         System.out.printf("   TOTAL: %d | PASSED: %d | FAILED: %d\n", (passed + failed), passed, failed);
@@ -132,6 +140,34 @@ public class DemoTestRunner {
 
         boolean ok = Math.abs(sum - 100.00) < 0.0001;
         assertTest("BillSplitter odd-cent remainder invariant (sum of shares == exact total)", ok);
+    }
+
+    private static void testMerchantPartnerLifecycle() {
+        BusinessOwner owner = new BusinessOwner("Anay Kitchen", "owner.test@zesto.in");
+        owner.issueOtp("482910", "9876543210", "FSSAI-MH-TEST-1");
+        boolean rejectedWrong = !owner.verifyOtp("000000");
+        boolean verifiedRight = owner.verifyOtp("482910") && owner.isVerified();
+
+        PuneArea area = PuneArea.BANER;
+        Restaurant localShop = new Restaurant("Test Home Bites", Cuisine.NORTH_INDIAN, 4.8, 25,
+                area.getLabel(), area.getLatitude(), area.getLongitude(), 250, 1, "Home Chef");
+        localShop.configureAsLocalBusiness(owner.getEmail(), BusinessType.HOME_CHEF, area.name(), owner.getFssaiLicense(), true);
+
+        FoodItem dish = new VegItem("Homemade Thalipeeth", 95.0, Cuisine.NORTH_INDIAN, false, "Spiced multigrain flatbread", null);
+        localShop.addItem(dish);
+        boolean addedOk = localShop.getMenu().size() == 1;
+
+        DataCatalogService catalog = new DataCatalogService();
+        catalog.registerLocalBusiness(localShop);
+        boolean visibleToCustomers = catalog.findRestaurantById(localShop.getId()).map(Restaurant::isLocalBusiness).orElse(false);
+
+        boolean removedOk = localShop.removeItemById(dish.getId()) && localShop.getMenu().isEmpty();
+        MerchantAnalytics emptyStats = MerchantAnalytics.compute(List.of());
+        boolean analyticsOk = emptyStats.getTotalOrders() == 0 && emptyStats.getNetPayout() == 0.0;
+
+        boolean ok = "BUSINESS_OWNER".equals(owner.getRole())
+                && rejectedWrong && verifiedRight && addedOk && visibleToCustomers && removedOk && analyticsOk;
+        assertTest("BusinessOwner inheritance, OTP verification, menu CRUD & live catalog sync", ok);
     }
 
     private static void assertTest(String testName, boolean condition) {

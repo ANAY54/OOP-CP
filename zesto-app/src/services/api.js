@@ -86,4 +86,31 @@ export const api = {
 
   riderLocation: (orderId, lat, lon) =>
     request(`/orders/${orderId}/rider` + (lat && lon ? `?lat=${lat}&lon=${lon}` : '')),
+
+  // Business Owner / Merchant Partner Endpoints
+  merchantMeta: () => request('/merchant/meta'),
+
+  merchantLogin: (name, email) =>
+    request('/merchant/login', { method: 'POST', body: JSON.stringify({ name, email }) }),
+
+  merchantDashboard: (email) =>
+    request(`/merchant/dashboard?email=${encodeURIComponent(email)}`),
+
+  merchantVerifyRequest: (payload) =>
+    request('/merchant/verify/request', { method: 'POST', body: JSON.stringify(payload) }),
+
+  merchantVerifyConfirm: (payload) =>
+    request('/merchant/verify/confirm', { method: 'POST', body: JSON.stringify(payload) }),
+
+  merchantUpdateBusiness: (payload) =>
+    request('/merchant/business', { method: 'POST', body: JSON.stringify(payload) }),
+
+  merchantAddItem: (payload) =>
+    request('/merchant/items', { method: 'POST', body: JSON.stringify(payload) }),
+
+  merchantDeleteItem: (email, itemId) =>
+    request('/merchant/items/delete', { method: 'POST', body: JSON.stringify({ email, itemId }) }),
+
+  merchantAdvanceOrder: (email, orderId) =>
+    request('/merchant/orders/advance', { method: 'POST', body: JSON.stringify({ email, orderId }) }),
 };

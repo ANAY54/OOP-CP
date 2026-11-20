@@ -17,15 +17,25 @@ export function AuthProvider({ children }) {
           const profile = JSON.parse(saved);
           setUser(profile);
 
-          // The Java server keeps users in memory, so re-register quietly
-          // (also refreshes loyalty points) in case the server was restarted.
-          api
-            .login(profile.name, profile.email)
-            .then(async (fresh) => {
-              setUser(fresh);
-              await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
-            })
-            .catch(() => {});
+          if (profile.role === 'BUSINESS_OWNER') {
+            api
+              .merchantLogin(profile.name, profile.email)
+              .then(async (res) => {
+                const fresh = { ...res.owner, role: 'BUSINESS_OWNER' };
+                setUser(fresh);
+                await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
+              })
+              .catch(() => {});
+          } else {
+            api
+              .login(profile.name, profile.email)
+              .then(async (fresh) => {
+                const normalized = { ...fresh, role: 'CUSTOMER' };
+                setUser(normalized);
+                await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+              })
+              .catch(() => {});
+          }
         }
       } catch (e) {
         // ignore storage errors
@@ -35,8 +45,9 @@ export function AuthProvider({ children }) {
   }, []);
 
   const signIn = useCallback(async (profile) => {
-    setUser(profile);
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+    const normalized = { ...profile, role: profile.role || 'CUSTOMER' };
+    setUser(normalized);
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
   }, []);
 
   const signOut = useCallback(async () => {
@@ -44,8 +55,10 @@ export function AuthProvider({ children }) {
     await AsyncStorage.removeItem(STORAGE_KEY);
   }, []);
 
+  const isMerchant = user?.role === 'BUSINESS_OWNER';
+
   return (
-    <AuthContext.Provider value={{ user, restoring, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, isMerchant, restoring, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

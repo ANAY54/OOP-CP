@@ -32,6 +32,10 @@ export const colors = {
   dangerSoft: 'rgba(255, 92, 92, 0.14)',
   veg: '#3DDC97',
   nonVeg: '#FF5C5C',
+  // Local Small Business / Merchant Partner accent
+  partner: '#38BDF8',
+  partnerSoft: 'rgba(56, 189, 248, 0.14)',
+  partnerBorder: 'rgba(56, 189, 248, 0.38)',
 };
 
 export const spacing = {

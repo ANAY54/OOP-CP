@@ -36,6 +36,7 @@ public class DataCatalogService {
     private static final long CACHE_MAX_AGE_MS = 24L * 60L * 60L * 1000L; // 24 hours
 
     private final AtomicReference<List<Restaurant>> activeCatalog = new AtomicReference<>(new ArrayList<>());
+    private final List<Restaurant> localBusinesses = new java.util.concurrent.CopyOnWriteArrayList<>();
     private final RestaurantProvider sampleProvider;
     private final RestaurantProvider liveOsmProvider;
     private final MealDbMenuProvider mealDbMenuProvider;
@@ -61,18 +62,32 @@ public class DataCatalogService {
         CompletableFuture.runAsync(this::refreshCatalogInBackground);
     }
 
+    public synchronized void registerLocalBusiness(Restaurant restaurant) {
+        if (restaurant == null) return;
+        localBusinesses.removeIf(r -> r.getId() == restaurant.getId()
+                || (r.getOwnerEmail() != null && r.getOwnerEmail().equalsIgnoreCase(restaurant.getOwnerEmail())));
+        localBusinesses.add(0, restaurant);
+    }
+
+    public List<Restaurant> getLocalBusinesses() {
+        return new ArrayList<>(localBusinesses);
+    }
+
     public List<Restaurant> getRestaurants() {
-        return activeCatalog.get();
+        List<Restaurant> merged = new ArrayList<>(localBusinesses.size() + activeCatalog.get().size());
+        merged.addAll(localBusinesses);
+        merged.addAll(activeCatalog.get());
+        return merged;
     }
 
     public Optional<Restaurant> findRestaurantById(int id) {
-        return activeCatalog.get().stream()
+        return getRestaurants().stream()
                 .filter(r -> r.getId() == id)
                 .findFirst();
     }
 
     public Optional<FoodItem> findDishById(int dishId) {
-        for (Restaurant r : activeCatalog.get()) {
+        for (Restaurant r : getRestaurants()) {
             for (FoodItem item : r.getMenu()) {
                 if (item.getId() == dishId) {
                     return Optional.of(item);

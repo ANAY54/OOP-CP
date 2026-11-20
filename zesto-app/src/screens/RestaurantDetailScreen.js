@@ -342,6 +342,29 @@ export default function RestaurantDetailScreen({ route, navigation }) {
           </View>
         </View>
 
+        {restaurant.localBusiness && (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8,
+              backgroundColor: colors.partnerSoft,
+              borderColor: colors.partnerBorder,
+              borderWidth: 1,
+              borderRadius: radius.md,
+              paddingHorizontal: 12,
+              paddingVertical: 9,
+              marginTop: 12,
+            }}
+          >
+            <Ionicons name="storefront" size={16} color={colors.partner} />
+            <Text style={{ fontFamily: 'Sora_700Bold', fontSize: 12, color: colors.partner, flex: 1 }}>
+              Verified {restaurant.businessTypeLabel || 'Local Business'}
+              {restaurant.fssaiLicense ? ` • ${restaurant.fssaiLicense}` : ''}
+            </Text>
+          </View>
+        )}
+
         {restaurant.pureVeg && (
           <View style={styles.pureVeg}>
             <Ionicons name="leaf" size={14} color={colors.veg} />

@@ -127,6 +127,29 @@ public class OrderService {
                 .collect(Collectors.toList());
     }
 
+    /** Returns all orders placed at a specific restaurant (newest first). */
+    public List<Order> getOrdersForRestaurant(int restaurantId) {
+        List<Order> list = orders.findAll().stream()
+                .filter(o -> o.getRestaurant().getId() == restaurantId)
+                .collect(Collectors.toList());
+        java.util.Collections.reverse(list);
+        return list;
+    }
+
+    /** Allows a verified restaurant owner to manually advance an order's preparation status. */
+    public Order advanceOrderForMerchant(int orderId, int restaurantId) {
+        Order order = orders.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order #" + orderId + " not found"));
+        if (order.getRestaurant().getId() != restaurantId) {
+            throw new IllegalArgumentException("You do not own the kitchen for Order #" + orderId);
+        }
+        if (order.getStatus() == OrderStatus.CANCELLED || order.getStatus() == OrderStatus.DELIVERED) {
+            return order;
+        }
+        order.advanceStatus();
+        return order;
+    }
+
     public Optional<Order> findById(int id) {
         return orders.findById(id);
     }

@@ -17,10 +17,12 @@ export default function RestaurantCard({ restaurant, onPress }) {
     toggle(restaurant.id);
   };
 
+  const isLocal = !!restaurant.localBusiness;
+
   return (
     <TouchableOpacity
       activeOpacity={0.9}
-      style={styles.card}
+      style={[styles.card, isLocal && styles.localCard]}
       onPress={() => {
         triggerHaptic('selection');
         onPress();
@@ -54,11 +56,18 @@ export default function RestaurantCard({ restaurant, onPress }) {
           style={StyleSheet.absoluteFill}
         />
 
-        {!!restaurant.badge && (
+        {isLocal ? (
+          <View style={styles.localBadge}>
+            <Ionicons name="storefront" size={12} color="#0B0D10" />
+            <Text style={styles.badgeText}>
+              {restaurant.businessTypeLabel || restaurant.badge || 'Local Business'}
+            </Text>
+          </View>
+        ) : !!restaurant.badge ? (
           <View style={[styles.badge, { backgroundColor: badgeColor(restaurant.badge) }]}>
             <Text style={styles.badgeText}>{restaurant.badge}</Text>
           </View>
-        )}
+        ) : null}
 
         <TouchableOpacity
           style={styles.heart}
@@ -74,7 +83,7 @@ export default function RestaurantCard({ restaurant, onPress }) {
         </TouchableOpacity>
 
         <View style={styles.timePill}>
-          <Ionicons name="time-outline" size={12} color={colors.primary} />
+          <Ionicons name="time-outline" size={12} color={isLocal ? colors.partner : colors.primary} />
           <Text style={styles.timeText}>{restaurant.deliveryTimeMin} min</Text>
         </View>
 
@@ -87,9 +96,16 @@ export default function RestaurantCard({ restaurant, onPress }) {
 
       <View style={styles.info}>
         <View style={styles.row}>
-          <Text style={styles.name} numberOfLines={1}>
-            {restaurant.name}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: 6, marginRight: 8 }}>
+            {isLocal && (
+              <View style={styles.localIconDot}>
+                <Ionicons name="storefront" size={13} color={colors.partner} />
+              </View>
+            )}
+            <Text style={styles.name} numberOfLines={1}>
+              {restaurant.name}
+            </Text>
+          </View>
           <View style={styles.rating}>
             <Ionicons name="star" size={11} color={colors.primaryText} />
             <Text style={styles.ratingText}>{Number(restaurant.rating).toFixed(1)}</Text>
@@ -119,6 +135,32 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     overflow: 'hidden',
+  },
+  localCard: {
+    borderColor: colors.partnerBorder,
+    borderWidth: 1.5,
+  },
+  localBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: colors.partner,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+  },
+  localIconDot: {
+    width: 24,
+    height: 24,
+    borderRadius: 8,
+    backgroundColor: colors.partnerSoft,
+    borderWidth: 1,
+    borderColor: colors.partnerBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   banner: {
     height: 160,

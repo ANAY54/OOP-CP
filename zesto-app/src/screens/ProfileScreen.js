@@ -338,6 +338,20 @@ export default function ProfileScreen({ navigation }) {
             />
             <View style={styles.divider} />
             <LinkRow
+              icon="storefront-outline"
+              label="Sell Food on Zesto (Partner Portal)"
+              onPress={async () => {
+                triggerHaptic('medium');
+                try {
+                  const res = await api.merchantLogin(user.name, user.email);
+                  await signIn({ ...res.owner, role: 'BUSINESS_OWNER' });
+                } catch (e) {
+                  Alert.alert('Could Not Open Portal', e.message);
+                }
+              }}
+            />
+            <View style={styles.divider} />
+            <LinkRow
               icon="information-circle-outline"
               label="About Zesto"
               onPress={() => setAboutModalVisible(true)}

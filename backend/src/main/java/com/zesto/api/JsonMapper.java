@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.zesto.model.BusinessOwner;
 import com.zesto.model.Customer;
 import com.zesto.model.DeliveryPartner;
 import com.zesto.model.FoodItem;
@@ -51,9 +52,17 @@ public final class JsonMapper {
         m.put("longitude",       r.getLongitude());
         m.put("priceForTwo",     r.getPriceForTwo());
         m.put("reviewCount",     r.getReviewCount());
-        m.put("badge",           r.getBadge());
-        m.put("imageUrl",        r.getImageUrl());
-        m.put("pureVeg",         r.isPureVeg());
+        m.put("badge",             r.getBadge());
+        m.put("imageUrl",          r.getImageUrl());
+        m.put("pureVeg",           r.isPureVeg());
+        m.put("localBusiness",     r.isLocalBusiness());
+        m.put("ownerEmail",        r.getOwnerEmail());
+        m.put("businessType",      r.getBusinessType().name());
+        m.put("businessTypeLabel", r.getBusinessType().getDisplayName());
+        m.put("verified",          r.isVerified());
+        m.put("openForOrders",     r.isOpenForOrders());
+        m.put("fssaiLicense",      r.getFssaiLicense());
+        m.put("areaKey",           r.getAreaKey());
         if (withMenu) {
             List<Object> items = new ArrayList<>();
             for (FoodItem item : r.getMenu()) {
@@ -79,8 +88,22 @@ public final class JsonMapper {
         m.put("id",            c.getId());
         m.put("name",          c.getName());
         m.put("email",         c.getEmail());
+        m.put("role",          c.getRole());
         m.put("address",       c.getAddress());
         m.put("loyaltyPoints", c.getLoyaltyPoints());
+        return m;
+    }
+
+    public static Map<String, Object> businessOwner(BusinessOwner owner) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id",           owner.getId());
+        m.put("name",         owner.getName());
+        m.put("email",        owner.getEmail());
+        m.put("role",         owner.getRole());
+        m.put("phone",        owner.getPhone());
+        m.put("fssaiLicense", owner.getFssaiLicense());
+        m.put("verified",     owner.isVerified());
+        m.put("restaurantId", owner.getRestaurantId());
         return m;
     }
 
@@ -89,6 +112,8 @@ public final class JsonMapper {
         m.put("id",             o.getId());
         m.put("restaurantId",   o.getRestaurant().getId());
         m.put("restaurantName", o.getRestaurant().getName());
+        m.put("customerName",   o.getCustomer().getName());
+        m.put("customerEmail",  o.getCustomer().getEmail());
 
         List<Object> lines = new ArrayList<>();
         for (Order.OrderLine line : o.getLines()) {

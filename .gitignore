@@ -8,6 +8,7 @@ backend/src/main/java/out/
 **/zesto_data/
 **/data/customers.dat
 **/data/catalog.json
+**/data/merchants.json
 
 # Node / Expo / React Native
 node_modules/

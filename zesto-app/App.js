@@ -20,6 +20,7 @@ import MainTabs from './src/navigation/MainTabs';
 import RestaurantDetailScreen from './src/screens/RestaurantDetailScreen';
 import CartScreen from './src/screens/CartScreen';
 import OrderSuccessScreen from './src/screens/OrderSuccessScreen';
+import MerchantDashboardScreen from './src/screens/MerchantDashboardScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -64,20 +65,24 @@ function Root() {
         }}
       >
         {user ? (
-          <>
-            <Stack.Screen name="Main" component={MainTabs} />
-            <Stack.Screen name="RestaurantDetail" component={RestaurantDetailScreen} />
-            <Stack.Screen
-              name="Cart"
-              component={CartScreen}
-              options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
-            />
-            <Stack.Screen
-              name="OrderSuccess"
-              component={OrderSuccessScreen}
-              options={{ gestureEnabled: false }}
-            />
-          </>
+          user.role === 'BUSINESS_OWNER' ? (
+            <Stack.Screen name="MerchantDashboard" component={MerchantDashboardScreen} />
+          ) : (
+            <>
+              <Stack.Screen name="Main" component={MainTabs} />
+              <Stack.Screen name="RestaurantDetail" component={RestaurantDetailScreen} />
+              <Stack.Screen
+                name="Cart"
+                component={CartScreen}
+                options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+              />
+              <Stack.Screen
+                name="OrderSuccess"
+                component={OrderSuccessScreen}
+                options={{ gestureEnabled: false }}
+              />
+            </>
+          )
         ) : (
           <Stack.Screen name="Login" component={LoginScreen} />
         )}

@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -52,31 +53,29 @@ export default function MapScreen({ navigation }) {
   const [selectedId, setSelectedId] = useState(null);
   const [userPos, setUserPos] = useState(null);
 
-  // Load restaurants from Java backend
-  useEffect(() => {
-    let mounted = true;
-    setLoading(true);
+  const loadRestaurants = useCallback(() => {
     api
       .restaurants()
       .then((list) => {
-        if (!mounted) return;
         setRestaurants(list);
         setFilteredList(list);
+        setSelectedArea('ALL');
         if (list.length > 0) {
-          setSelectedId(list[0].id);
+          setSelectedId((prev) => prev || list[0].id);
         }
         setLoading(false);
       })
       .catch((e) => {
-        if (!mounted) return;
         setError(e.message || 'Unable to load restaurants');
         setLoading(false);
       });
-
-    return () => {
-      mounted = false;
-    };
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadRestaurants();
+    }, [loadRestaurants])
+  );
 
   // Request user location
   useEffect(() => {
@@ -95,12 +94,14 @@ export default function MapScreen({ navigation }) {
     })();
   }, []);
 
-  // Filter by Pune neighbourhood
+  // Filter by Pune neighbourhood or local small businesses
   const filterByArea = (areaKey) => {
     triggerHaptic('selection');
     setSelectedArea(areaKey);
     let result = restaurants;
-    if (areaKey === 'FC_ROAD') {
+    if (areaKey === 'LOCAL') {
+      result = restaurants.filter((r) => r.localBusiness);
+    } else if (areaKey === 'FC_ROAD') {
       result = restaurants.filter(
         (r) => r.address.toLowerCase().includes('fc road') || r.address.toLowerCase().includes('deccan')
       );
@@ -221,6 +222,37 @@ export default function MapScreen({ navigation }) {
           border-color: #FFFFFF;
           box-shadow: 0 0 16px rgba(184, 242, 59, 0.8);
         }
+        .custom-pin.local .pulse-ring {
+          background: rgba(56, 189, 248, 0.32);
+        }
+        .custom-pin.local .pin-core {
+          width: 34px;
+          height: 34px;
+          left: -17px;
+          top: -17px;
+          border-radius: 10px;
+          border-color: #38BDF8;
+          color: #38BDF8;
+          background: #0F1A24;
+          font-size: 15px;
+          box-shadow: 0 0 14px rgba(56, 189, 248, 0.45);
+        }
+        .custom-pin.local.active .pin-core {
+          background: #38BDF8;
+          color: #0B0D10;
+          border-color: #FFFFFF;
+          box-shadow: 0 0 18px rgba(56, 189, 248, 0.9);
+        }
+        .popup-local-tag {
+          display: inline-block;
+          background: rgba(56, 189, 248, 0.18);
+          color: #38BDF8;
+          font-size: 9.5px;
+          font-weight: 800;
+          padding: 2px 6px;
+          border-radius: 6px;
+          margin-bottom: 4px;
+        }
         .leaflet-popup-content-wrapper {
           background: #14181D;
           color: #F4F6F8;
@@ -291,24 +323,27 @@ export default function MapScreen({ navigation }) {
         var restaurantData = ${JSON.stringify(restaurants)};
 
         restaurantData.forEach(function(r) {
-          var iconHtml = '<div class="custom-pin" id="pin-' + r.id + '">' +
+          var isLocal = !!r.localBusiness;
+          var iconHtml = '<div class="custom-pin ' + (isLocal ? 'local' : '') + '" id="pin-' + r.id + '">' +
             '<div class="pulse-ring"></div>' +
-            '<div class="pin-core">' + (r.rating ? r.rating.toFixed(1) : '★') + '</div>' +
+            '<div class="pin-core">' + (isLocal ? '🏪' : (r.rating ? r.rating.toFixed(1) : '★')) + '</div>' +
           '</div>';
 
           var customIcon = L.divIcon({
             html: iconHtml,
             className: '',
-            iconSize: [28, 28],
+            iconSize: isLocal ? [34, 34] : [28, 28],
             iconAnchor: [0, 0]
           });
 
           var marker = L.marker([r.latitude, r.longitude], { icon: customIcon }).addTo(map);
 
-          var popupContent = '<div style="min-width: 150px;">' +
+          var localTag = isLocal ? '<div class="popup-local-tag">🏪 ' + (r.businessTypeLabel || 'Local Kitchen') + '</div>' : '';
+          var popupContent = '<div style="min-width: 160px;">' +
+            localTag +
             '<div class="popup-title">' + r.name + '</div>' +
             '<div class="popup-sub">' + r.cuisine + ' • ' + r.deliveryTimeMin + 'm</div>' +
-            '<button class="popup-btn" onclick="openRestaurant(' + r.id + ')">View Menu</button>' +
+            '<button class="popup-btn" style="' + (isLocal ? 'background:#38BDF8;' : '') + '" onclick="openRestaurant(' + r.id + ')">View Menu</button>' +
           '</div>';
 
           marker.bindPopup(popupContent);
@@ -358,13 +393,19 @@ export default function MapScreen({ navigation }) {
   `,
   }), [restaurants]);
 
+  const localCount = restaurants.filter((r) => r.localBusiness).length;
+
   const renderCard = ({ item }) => {
     const active = item.id === selectedId;
+    const isLocal = !!item.localBusiness;
     const dist = userPos ? distanceKm(userPos, item) : null;
 
     return (
       <TouchableOpacity
-        style={[styles.card, active && styles.cardActive]}
+        style={[
+          styles.card,
+          active && (isLocal ? { borderColor: colors.partner, borderWidth: 2, backgroundColor: '#131E26' } : styles.cardActive),
+        ]}
         activeOpacity={0.88}
         onPress={() => {
           focusRestaurant(item.id, false);
@@ -379,9 +420,12 @@ export default function MapScreen({ navigation }) {
         />
         <View style={styles.cardDetails}>
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle} numberOfLines={1}>
-              {item.name}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, flex: 1, marginRight: 6 }}>
+              {isLocal && <Ionicons name="storefront" size={14} color={colors.partner} />}
+              <Text style={styles.cardTitle} numberOfLines={1}>
+                {item.name}
+              </Text>
+            </View>
             <View style={styles.ratingBadge}>
               <Ionicons name="star" size={11} color="#0B0D10" />
               <Text style={styles.ratingText}>{item.rating?.toFixed(1) || '4.8'}</Text>
@@ -393,8 +437,15 @@ export default function MapScreen({ navigation }) {
           </Text>
 
           <View style={styles.cardMetaRow}>
-            <View style={[styles.cuisinePill, { backgroundColor: 'rgba(184, 242, 59, 0.14)' }]}>
-              <Text style={[styles.cuisineText, { color: colors.primary }]}>{item.cuisine}</Text>
+            <View
+              style={[
+                styles.cuisinePill,
+                { backgroundColor: isLocal ? colors.partnerSoft : 'rgba(184, 242, 59, 0.14)' },
+              ]}
+            >
+              <Text style={[styles.cuisineText, { color: isLocal ? colors.partner : colors.primary }]}>
+                {isLocal ? (item.businessTypeLabel || 'Local Kitchen') : item.cuisine}
+              </Text>
             </View>
             <Text style={styles.metaDot}>•</Text>
             <Ionicons name="time-outline" size={12} color={colors.textMuted} />
@@ -410,7 +461,7 @@ export default function MapScreen({ navigation }) {
           <View style={styles.cardFooter}>
             <Text style={styles.metaPrice}>{formatPrice(item.priceForTwo)} for two</Text>
             <TouchableOpacity
-              style={styles.menuBtn}
+              style={[styles.menuBtn, isLocal && { backgroundColor: colors.partner }]}
               onPress={() => {
                 triggerHaptic('medium');
                 navigation.navigate('RestaurantDetail', { restaurantId: item.id });
@@ -433,7 +484,7 @@ export default function MapScreen({ navigation }) {
           <View>
             <Text style={styles.headerTitle}>Pune Food Map</Text>
             <Text style={styles.headerSubtitle}>
-              {filteredList.length} Iconic Restaurants • Real GPS
+              {filteredList.length} Kitchens • {localCount} Local Partner{localCount === 1 ? '' : 's'}
             </Text>
           </View>
           <TouchableOpacity style={styles.recenterBtn} onPress={centerPune}>
@@ -445,17 +496,22 @@ export default function MapScreen({ navigation }) {
         {/* Area Filter Chips */}
         <View style={styles.chipsRow}>
           {[
-            { key: 'ALL', label: 'All (16)' },
+            { key: 'ALL', label: `All (${restaurants.length})` },
+            { key: 'LOCAL', label: `🏪 Local (${localCount})` },
             { key: 'FC_ROAD', label: 'FC Rd / Deccan' },
             { key: 'CAMP', label: 'Camp' },
             { key: 'KP', label: 'Koregaon Park' },
             { key: 'PETH', label: 'Sadashiv Peth' },
           ].map((chip) => {
             const active = selectedArea === chip.key;
+            const isLocalChip = chip.key === 'LOCAL';
             return (
               <TouchableOpacity
                 key={chip.key}
-                style={[styles.chip, active && styles.chipActive]}
+                style={[
+                  styles.chip,
+                  active && (isLocalChip ? { backgroundColor: colors.partner, borderColor: colors.partner } : styles.chipActive),
+                ]}
                 onPress={() => filterByArea(chip.key)}
               >
                 <Text style={[styles.chipText, active && styles.chipTextActive]}>

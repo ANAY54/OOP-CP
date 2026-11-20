@@ -40,6 +40,7 @@ public class ZestoServer {
         CustomerService   customerService   = new CustomerService();
         ReviewService     reviewService     = new ReviewService();
         com.zesto.service.AchievementService achievementService = new com.zesto.service.AchievementService();
+        com.zesto.service.MerchantService merchantService = new com.zesto.service.MerchantService(restaurantService.getCatalogService());
 
         server = HttpServer.create(new InetSocketAddress(port), 0);
         server.createContext("/restaurants", new RestaurantHandler(restaurantService));
@@ -54,6 +55,7 @@ public class ZestoServer {
         server.createContext("/profile",     new ProfileHandler(customerService));
         server.createContext("/orders",      new OrderHandler(restaurantService, orderService, customerService));
         server.createContext("/reviews",     new ReviewHandler(reviewService, customerService));
+        server.createContext("/merchant",    new MerchantHandler(merchantService, orderService));
         server.setExecutor(null);
     }
 
@@ -80,6 +82,8 @@ public class ZestoServer {
         System.out.println("| POST /orders/cancel                          |");
         System.out.println("| GET  /reviews?restaurantId=                  |");
         System.out.println("| POST /reviews                                |");
+        System.out.println("| POST /merchant/login|verify|items|business   |");
+        System.out.println("| GET  /merchant/meta|dashboard?email=         |");
         System.out.println("+----------------------------------------------+");
         System.out.println("Press Ctrl+C to stop");
     }

@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -27,6 +28,7 @@ import CartBar from '../components/CartBar';
 
 const CATEGORIES = [
   { key: '', label: 'All', emoji: '⚡' },
+  { key: 'LOCAL', label: 'Local Kitchens', emoji: '🏪' },
   { key: 'FAV', label: 'Saved', emoji: '❤️' },
   { key: 'NORTH_INDIAN', label: 'North Indian', emoji: '🍛' },
   { key: 'SOUTH_INDIAN', label: 'South Indian', emoji: '🥘' },
@@ -84,6 +86,12 @@ export default function HomeScreen({ navigation }) {
   const [moodDishes, setMoodDishes] = useState([]);
   const [moodLoading, setMoodLoading] = useState(false);
 
+  useFocusEffect(
+    useCallback(() => {
+      setReloadKey((k) => k + 1);
+    }, [])
+  );
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -91,7 +99,8 @@ export default function HomeScreen({ navigation }) {
     const timer = setTimeout(
       async () => {
         try {
-          const data = await api.restaurants(query.trim(), cuisine === 'FAV' ? '' : cuisine);
+          const apiCuisine = cuisine === 'FAV' || cuisine === 'LOCAL' ? '' : cuisine;
+          const data = await api.restaurants(query.trim(), apiCuisine);
           if (!cancelled) {
             setRestaurants(data);
             setError('');
@@ -201,15 +210,22 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
+  const localKitchens = useMemo(
+    () => restaurants.filter((r) => r.localBusiness),
+    [restaurants]
+  );
+
   const visible = useMemo(() => {
     let list = restaurants;
     if (cuisine === 'FAV') {
       list = list.filter((r) => isFavorite(r.id));
+    } else if (cuisine === 'LOCAL') {
+      list = list.filter((r) => r.localBusiness);
     }
     const sorted = [...list];
     if (sort === 'time') sorted.sort((a, b) => a.deliveryTimeMin - b.deliveryTimeMin);
     else if (sort === 'cost') sorted.sort((a, b) => a.priceForTwo - b.priceForTwo);
-    else sorted.sort((a, b) => b.rating - a.rating);
+    else sorted.sort((a, b) => (b.localBusiness ? 1 : 0) - (a.localBusiness ? 1 : 0) || b.rating - a.rating);
     return sorted;
   }, [restaurants, cuisine, sort, favIds]);
 
@@ -249,6 +265,133 @@ export default function HomeScreen({ navigation }) {
           );
         })}
       </ScrollView>
+
+      {/* Verified Local & Small Food Businesses Spotlight */}
+      {!hasFilters && localKitchens.length > 0 && (
+        <View style={{ marginBottom: 16 }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              paddingHorizontal: 16,
+              marginBottom: 10,
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+              <View
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: 9,
+                  backgroundColor: colors.partnerSoft,
+                  borderWidth: 1,
+                  borderColor: colors.partnerBorder,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Ionicons name="storefront" size={14} color={colors.partner} />
+              </View>
+              <View>
+                <Text style={{ fontFamily: 'Sora_800ExtraBold', fontSize: 16, color: colors.text }}>
+                  Local & Home Kitchens
+                </Text>
+                <Text style={{ fontFamily: 'Sora_400Regular', fontSize: 11, color: colors.textMuted }}>
+                  Verified Pune small food businesses near you
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity onPress={() => handleCategoryPress('LOCAL')}>
+              <Text style={{ fontFamily: 'Sora_700Bold', fontSize: 12, color: colors.partner }}>
+                See All ({localKitchens.length})
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
+          >
+            {localKitchens.map((shop) => (
+              <TouchableOpacity
+                key={shop.id}
+                activeOpacity={0.9}
+                onPress={() => {
+                  triggerHaptic('selection');
+                  navigation.navigate('RestaurantDetail', { restaurantId: shop.id });
+                }}
+                style={{
+                  width: 230,
+                  backgroundColor: colors.surface,
+                  borderRadius: 20,
+                  borderWidth: 1.5,
+                  borderColor: colors.partnerBorder,
+                  overflow: 'hidden',
+                }}
+              >
+                <View style={{ height: 106, position: 'relative' }}>
+                  <Image source={{ uri: shop.imageUrl }} style={StyleSheet.absoluteFill} contentFit="cover" />
+                  <LinearGradient
+                    colors={['rgba(11,13,16,0.15)', 'rgba(11,13,16,0.88)']}
+                    style={StyleSheet.absoluteFill}
+                  />
+                  <View
+                    style={{
+                      position: 'absolute',
+                      top: 8,
+                      left: 8,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 4,
+                      backgroundColor: colors.partner,
+                      paddingHorizontal: 8,
+                      paddingVertical: 3,
+                      borderRadius: 99,
+                    }}
+                  >
+                    <Ionicons name="storefront" size={10} color="#0B0D10" />
+                    <Text style={{ fontFamily: 'Sora_800ExtraBold', fontSize: 9.5, color: '#0B0D10' }}>
+                      {shop.businessTypeLabel || 'Local Kitchen'}
+                    </Text>
+                  </View>
+                  <View
+                    style={{
+                      position: 'absolute',
+                      bottom: 8,
+                      right: 8,
+                      backgroundColor: colors.amber,
+                      paddingHorizontal: 6,
+                      paddingVertical: 2,
+                      borderRadius: 7,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 2,
+                    }}
+                  >
+                    <Ionicons name="star" size={10} color="#0B0D10" />
+                    <Text style={{ fontFamily: 'Sora_800ExtraBold', fontSize: 10.5, color: '#0B0D10' }}>
+                      {Number(shop.rating).toFixed(1)}
+                    </Text>
+                  </View>
+                </View>
+                <View style={{ padding: 11 }}>
+                  <Text style={{ fontFamily: 'Sora_700Bold', fontSize: 14, color: colors.text }} numberOfLines={1}>
+                    {shop.name}
+                  </Text>
+                  <Text style={{ fontFamily: 'Sora_400Regular', fontSize: 11, color: colors.textMuted, marginTop: 2 }} numberOfLines={1}>
+                    {shop.cuisine} • {shop.deliveryTimeMin} min • {formatPrice(shop.priceForTwo)} for 2
+                  </Text>
+                  <Text style={{ fontFamily: 'Sora_600SemiBold', fontSize: 10.5, color: colors.partner, marginTop: 4 }} numberOfLines={1}>
+                    📍 {shop.address}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       {/* Signature Feature A: "Feed Me" Smart Meal Planner Card */}
       {!hasFilters && (

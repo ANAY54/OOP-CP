@@ -18,13 +18,18 @@ import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { triggerHaptic } from '../utils/helpers';
 
-function Field({ icon, focused, onFocus, onBlur, ...props }) {
+function Field({ icon, focused, accentColor, onFocus, onBlur, ...props }) {
   return (
-    <View style={[styles.field, focused && styles.fieldFocused]}>
+    <View
+      style={[
+        styles.field,
+        focused && { borderColor: accentColor, backgroundColor: '#192228' },
+      ]}
+    >
       <Ionicons
         name={icon}
         size={20}
-        color={focused ? colors.primary : colors.textMuted}
+        color={focused ? accentColor : colors.textMuted}
       />
       <TextInput
         style={styles.input}
@@ -39,6 +44,7 @@ function Field({ icon, focused, onFocus, onBlur, ...props }) {
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
+  const [role, setRole] = useState('CUSTOMER'); // 'CUSTOMER' | 'BUSINESS_OWNER'
   const [name, setName] = useState('Anay Palimkar');
   const [email, setEmail] = useState('anaypalimkar@gmail.com');
   const [nameFocused, setNameFocused] = useState(false);
@@ -51,6 +57,9 @@ export default function LoginScreen() {
   const [customGoogleMode, setCustomGoogleMode] = useState(false);
   const [customName, setCustomName] = useState('');
   const [customEmail, setCustomEmail] = useState('');
+
+  const isBusiness = role === 'BUSINESS_OWNER';
+  const accent = isBusiness ? colors.partner : colors.primary;
 
   const openGoogleSignIn = () => {
     triggerHaptic('medium');
@@ -75,9 +84,15 @@ export default function LoginScreen() {
     setLoading(true);
     setGoogleModalVisible(false);
     try {
-      const customer = await api.login(cleanName, cleanEmail);
-      triggerHaptic('success');
-      await signIn(customer);
+      if (isBusiness) {
+        const res = await api.merchantLogin(cleanName, cleanEmail);
+        triggerHaptic('success');
+        await signIn({ ...res.owner, role: 'BUSINESS_OWNER' });
+      } else {
+        const customer = await api.login(cleanName, cleanEmail);
+        triggerHaptic('success');
+        await signIn({ ...customer, role: 'CUSTOMER' });
+      }
     } catch (e) {
       setError(e.message || 'Login failed. Please verify server connection.');
     } finally {
@@ -99,22 +114,99 @@ export default function LoginScreen() {
         {/* Header Hero */}
         <View style={styles.header}>
           <View style={styles.badgeWrap}>
-            <View style={styles.logoBadge}>
-              <Ionicons name="sparkles" size={32} color={colors.primary} />
+            <View
+              style={[
+                styles.logoBadge,
+                { borderColor: accent },
+                isBusiness && { shadowColor: colors.partner },
+              ]}
+            >
+              <Ionicons
+                name={isBusiness ? 'storefront' : 'sparkles'}
+                size={32}
+                color={accent}
+              />
             </View>
           </View>
           <Text style={styles.brand}>ZESTO</Text>
-          <Text style={styles.tagline}>CITRUS ZEST • PUNE FOOD DELIVERY</Text>
+          <Text style={[styles.tagline, { color: accent }]}>
+            {isBusiness
+              ? 'ZESTO PARTNER • LOCAL FOOD BUSINESSES'
+              : 'CITRUS ZEST • PUNE FOOD DELIVERY'}
+          </Text>
           <Text style={styles.subtext}>
-            Order from Pune's most iconic restaurants with lightning-fast delivery
+            {isBusiness
+              ? 'Register & verify your kitchen, manage menu prices, and reach hungry Pune diners'
+              : "Order from Pune's iconic restaurants & verified local home kitchens"}
           </Text>
         </View>
 
         {/* Auth Card */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Sign in to your account</Text>
+          {/* Role Switcher */}
+          <View style={styles.roleSwitch}>
+            <TouchableOpacity
+              style={[
+                styles.roleTab,
+                !isBusiness && styles.roleTabCustomerActive,
+              ]}
+              activeOpacity={0.85}
+              onPress={() => {
+                triggerHaptic('selection');
+                setRole('CUSTOMER');
+                setError('');
+              }}
+            >
+              <Ionicons
+                name="fast-food-outline"
+                size={16}
+                color={!isBusiness ? colors.primaryText : colors.textMuted}
+              />
+              <Text
+                style={[
+                  styles.roleTabText,
+                  !isBusiness && { color: colors.primaryText },
+                ]}
+              >
+                Customer
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.roleTab,
+                isBusiness && styles.roleTabBusinessActive,
+              ]}
+              activeOpacity={0.85}
+              onPress={() => {
+                triggerHaptic('selection');
+                setRole('BUSINESS_OWNER');
+                setError('');
+              }}
+            >
+              <Ionicons
+                name="storefront-outline"
+                size={16}
+                color={isBusiness ? colors.primaryText : colors.textMuted}
+              />
+              <Text
+                style={[
+                  styles.roleTabText,
+                  isBusiness && { color: colors.primaryText },
+                ]}
+              >
+                Food Business
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.cardTitle}>
+            {isBusiness ? 'Partner Portal Sign In' : 'Sign in to your account'}
+          </Text>
           <Text style={styles.cardSub}>
-            Enjoy personalized orders, instant tracking, and reward points
+            {isBusiness
+              ? 'Verify your restaurant or home kitchen & publish dishes live'
+              : 'Enjoy personalized orders, instant tracking, and reward points'}
           </Text>
 
           {error ? (
@@ -131,7 +223,9 @@ export default function LoginScreen() {
             onPress={openGoogleSignIn}
           >
             <Ionicons name="logo-google" size={19} color="#FFFFFF" />
-            <Text style={styles.googleBtnText}>Continue with Google</Text>
+            <Text style={styles.googleBtnText}>
+              {isBusiness ? 'Continue with Google as Partner' : 'Continue with Google'}
+            </Text>
           </TouchableOpacity>
 
           <View style={styles.dividerRow}>
@@ -142,8 +236,9 @@ export default function LoginScreen() {
 
           <Field
             icon="person-outline"
-            placeholder="Full Name"
+            placeholder={isBusiness ? 'Owner Full Name' : 'Full Name'}
             value={name}
+            accentColor={accent}
             onChangeText={(t) => {
               setName(t);
               setError('');
@@ -155,8 +250,9 @@ export default function LoginScreen() {
 
           <Field
             icon="mail-outline"
-            placeholder="Email Address"
+            placeholder={isBusiness ? 'Business / Owner Email' : 'Email Address'}
             value={email}
+            accentColor={accent}
             onChangeText={(t) => {
               setEmail(t);
               setError('');
@@ -170,7 +266,11 @@ export default function LoginScreen() {
 
           {/* Primary Action Button */}
           <TouchableOpacity
-            style={styles.primaryBtn}
+            style={[
+              styles.primaryBtn,
+              { backgroundColor: accent },
+              isBusiness && { shadowColor: colors.partner },
+            ]}
             activeOpacity={0.88}
             onPress={() => loginWithUser(name, email)}
             disabled={loading}
@@ -179,7 +279,9 @@ export default function LoginScreen() {
               <ActivityIndicator color={colors.primaryText} />
             ) : (
               <View style={styles.btnInner}>
-                <Text style={styles.primaryBtnText}>Continue to Zesto</Text>
+                <Text style={styles.primaryBtnText}>
+                  {isBusiness ? 'Open Partner Portal' : 'Continue to Zesto'}
+                </Text>
                 <Ionicons name="arrow-forward" size={18} color={colors.primaryText} />
               </View>
             )}
@@ -188,7 +290,7 @@ export default function LoginScreen() {
 
         {/* Footer Note */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Zesto • Pune's Premium Food Platform</Text>
+          <Text style={styles.footerText}>Zesto • Pune's Premium Food & Local Kitchen Platform</Text>
         </View>
       </ScrollView>
 
@@ -206,7 +308,9 @@ export default function LoginScreen() {
                 <Ionicons name="logo-google" size={24} color="#EA4335" />
               </View>
               <Text style={styles.modalTitle}>Choose an account</Text>
-              <Text style={styles.modalSub}>to continue to Zesto</Text>
+              <Text style={styles.modalSub}>
+                to continue to {isBusiness ? 'Zesto Partner Portal' : 'Zesto'}
+              </Text>
             </View>
 
             {!customGoogleMode ? (
@@ -224,14 +328,40 @@ export default function LoginScreen() {
                     <Text style={styles.accountName}>Anay Palimkar</Text>
                     <Text style={styles.accountEmail}>anaypalimkar@gmail.com</Text>
                     <View style={styles.defaultPill}>
-                      <Ionicons name="checkmark-circle" size={12} color={colors.primary} />
-                      <Text style={styles.defaultPillText}>Verified Account</Text>
+                      <Ionicons name="checkmark-circle" size={12} color={accent} />
+                      <Text style={[styles.defaultPillText, { color: accent }]}>
+                        {isBusiness ? 'Sign in as Business Owner' : 'Verified Google Account'}
+                      </Text>
                     </View>
                   </View>
                   <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
                 </TouchableOpacity>
 
-                {/* Account 2: Add another account */}
+                {/* Pre-verified local partner option when in Business mode */}
+                {isBusiness && (
+                  <TouchableOpacity
+                    style={styles.accountRow}
+                    activeOpacity={0.8}
+                    onPress={() => loginWithUser('Sunita Kulkarni', 'aai.kitchen@zesto.in')}
+                  >
+                    <View style={[styles.avatarCircle, { backgroundColor: '#0EA5E9' }]}>
+                      <Ionicons name="storefront" size={18} color="#FFFFFF" />
+                    </View>
+                    <View style={styles.accountInfo}>
+                      <Text style={styles.accountName}>Sunita Kulkarni (Aai's Tiffin)</Text>
+                      <Text style={styles.accountEmail}>aai.kitchen@zesto.in</Text>
+                      <View style={styles.defaultPill}>
+                        <Ionicons name="shield-checkmark" size={12} color={colors.partner} />
+                        <Text style={[styles.defaultPillText, { color: colors.partner }]}>
+                          Verified Local Home Chef
+                        </Text>
+                      </View>
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                  </TouchableOpacity>
+                )}
+
+                {/* Add another account */}
                 <TouchableOpacity
                   style={[styles.accountRow, { borderBottomWidth: 0 }]}
                   activeOpacity={0.8}
@@ -241,7 +371,7 @@ export default function LoginScreen() {
                   }}
                 >
                   <View style={[styles.avatarCircle, { backgroundColor: colors.surface2 }]}>
-                    <Ionicons name="person-add" size={18} color={colors.primary} />
+                    <Ionicons name="person-add" size={18} color={accent} />
                   </View>
                   <View style={styles.accountInfo}>
                     <Text style={styles.accountName}>Use another Google account</Text>
@@ -270,10 +400,12 @@ export default function LoginScreen() {
                   onChangeText={setCustomEmail}
                 />
                 <TouchableOpacity
-                  style={styles.modalConfirmBtn}
+                  style={[styles.modalConfirmBtn, { backgroundColor: accent }]}
                   onPress={() => loginWithUser(customName, customEmail)}
                 >
-                  <Text style={styles.modalConfirmBtnText}>Sign In with Google</Text>
+                  <Text style={styles.modalConfirmBtnText}>
+                    {isBusiness ? 'Sign In as Partner' : 'Sign In with Google'}
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.backBtn}
@@ -301,16 +433,16 @@ const styles = StyleSheet.create({
   scroll: {
     flexGrow: 1,
     paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 40,
+    paddingTop: 52,
+    paddingBottom: 36,
     justifyContent: 'space-between',
   },
   header: {
     alignItems: 'center',
-    marginBottom: 28,
+    marginBottom: 22,
   },
   badgeWrap: {
-    marginBottom: 16,
+    marginBottom: 14,
   },
   logoBadge: {
     width: 68,
@@ -334,7 +466,8 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: colors.primary,
     marginTop: 6,
-    letterSpacing: 2,
+    letterSpacing: 1.8,
+    textAlign: 'center',
   },
   subtext: {
     fontFamily: 'Sora_400Regular',
@@ -342,26 +475,55 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textAlign: 'center',
     marginTop: 8,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
   },
   card: {
     backgroundColor: colors.surface,
     borderRadius: radius.xl,
-    padding: 24,
+    padding: 22,
     borderWidth: 1,
     borderColor: colors.border,
   },
+  roleSwitch: {
+    flexDirection: 'row',
+    backgroundColor: colors.surface2,
+    borderRadius: radius.pill,
+    padding: 4,
+    marginBottom: 18,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  roleTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: radius.pill,
+  },
+  roleTabCustomerActive: {
+    backgroundColor: colors.primary,
+  },
+  roleTabBusinessActive: {
+    backgroundColor: colors.partner,
+  },
+  roleTabText: {
+    fontFamily: 'Sora_700Bold',
+    fontSize: 13,
+    color: colors.textMuted,
+  },
   cardTitle: {
     fontFamily: 'Sora_700Bold',
-    fontSize: 20,
+    fontSize: 19,
     color: colors.text,
   },
   cardSub: {
     fontFamily: 'Sora_400Regular',
-    fontSize: 13,
+    fontSize: 12,
     color: colors.textMuted,
     marginTop: 4,
-    marginBottom: 20,
+    marginBottom: 18,
   },
   errorBox: {
     flexDirection: 'row',
@@ -370,7 +532,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.dangerSoft,
     padding: 12,
     borderRadius: radius.sm,
-    marginBottom: 16,
+    marginBottom: 14,
     borderWidth: 1,
     borderColor: 'rgba(255, 92, 92, 0.3)',
   },
@@ -393,13 +555,13 @@ const styles = StyleSheet.create({
   },
   googleBtnText: {
     fontFamily: 'Sora_700Bold',
-    fontSize: 14,
+    fontSize: 13.5,
     color: '#FFFFFF',
   },
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 18,
+    marginVertical: 16,
     gap: 12,
   },
   divider: {
@@ -422,12 +584,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     paddingHorizontal: 14,
     paddingVertical: Platform.OS === 'ios' ? 14 : 10,
-    marginBottom: 14,
+    marginBottom: 12,
     gap: 12,
-  },
-  fieldFocused: {
-    borderColor: colors.primary,
-    backgroundColor: '#1C241D',
   },
   input: {
     flex: 1,
@@ -441,7 +599,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
+    marginTop: 6,
     ...limeGlow,
   },
   btnInner: {
@@ -453,18 +611,17 @@ const styles = StyleSheet.create({
     fontFamily: 'Sora_700Bold',
     fontSize: 15,
     color: colors.primaryText,
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
   footer: {
     alignItems: 'center',
-    marginTop: 24,
+    marginTop: 20,
   },
   footerText: {
     fontFamily: 'Sora_400Regular',
     fontSize: 12,
     color: colors.textMuted,
   },
-  // Modal styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.75)',
