@@ -1,8 +1,15 @@
 package com.zesto.model;
 
+/**
+ * OOP CONCEPTS DEMONSTRATED:
+ *   - Encapsulation (immutable value object, all fields private final, getters only)
+ *   - Method Overloading (calculate with default delivery fee vs custom distance-based delivery fee)
+ *   - Financial Precision (rounding helper ensures exact 2-decimal precision without rounding drift)
+ *   - Static Factory Method Pattern (Bill.calculate() encapsulates bill construction logic)
+ */
 public class Bill {
 
-    public static final double DELIVERY_FEE = 30.0;
+    public static final double DEFAULT_DELIVERY_FEE = 30.0;
     public static final double TAX_RATE = 0.05;
 
     private final double subtotal;
@@ -20,16 +27,21 @@ public class Bill {
     }
 
     public static Bill calculate(Customer customer, double rawSubtotal, double couponDiscount) {
+        return calculate(customer, rawSubtotal, couponDiscount, DEFAULT_DELIVERY_FEE);
+    }
+
+    public static Bill calculate(Customer customer, double rawSubtotal, double couponDiscount, double deliveryFee) {
         double subtotal = round(rawSubtotal);
-        double afterCoupon = subtotal - couponDiscount;
+        double afterCoupon = Math.max(0, subtotal - couponDiscount);
         double afterLoyalty = customer.applyDiscount(afterCoupon);
         double discount = round(subtotal - afterLoyalty);
         double tax = round(afterLoyalty * TAX_RATE);
-        double total = round(afterLoyalty + tax + DELIVERY_FEE);
-        return new Bill(subtotal, discount, tax, DELIVERY_FEE, total);
+        double validFee = Math.max(0, round(deliveryFee));
+        double total = round(afterLoyalty + tax + validFee);
+        return new Bill(subtotal, discount, tax, validFee, total);
     }
 
-    private static double round(double value) {
+    public static double round(double value) {
         return Math.round(value * 100.0) / 100.0;
     }
 

@@ -75,9 +75,14 @@ public class Order implements Identifiable {
     /** The assigned delivery partner (may be null if none is available). */
     private volatile DeliveryPartner deliveryPartner;
 
-    // ------------------------------------------------------------------ constructor
+    // ------------------------------------------------------------------ constructors
     public Order(Customer customer, Cart cart, double couponDiscount,
                  String couponCode, PaymentMode paymentMode) {
+        this(customer, cart, couponDiscount, couponCode, paymentMode, Bill.DEFAULT_DELIVERY_FEE);
+    }
+
+    public Order(Customer customer, Cart cart, double couponDiscount,
+                 String couponCode, PaymentMode paymentMode, double customDeliveryFee) {
         this.id          = ++idCounter;
         this.customer    = customer;
         this.restaurant  = cart.getRestaurant();
@@ -90,7 +95,7 @@ public class Order implements Identifiable {
             lines.add(new OrderLine(item.getName(), item.calculatePrice(), entry.getValue()));
         }
 
-        Bill bill       = Bill.calculate(customer, cart.getSubtotal(), couponDiscount);
+        Bill bill       = Bill.calculate(customer, cart.getSubtotal(), couponDiscount, customDeliveryFee);
         this.subtotal   = bill.getSubtotal();
         this.discount   = bill.getDiscount();
         this.tax        = bill.getTax();

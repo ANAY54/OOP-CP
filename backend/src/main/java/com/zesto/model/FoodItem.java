@@ -3,14 +3,14 @@ package com.zesto.model;
 import java.util.Objects;
 
 /**
- * OOP CONCEPTS:
- *   - Abstract Class (abstract calculatePrice and getCategory force subclass to define behaviour)
- *   - Inheritance base (VegItem, NonVegItem, Beverage all extend this)
- *   - Comparable interface (compareTo by price — enables sorting)
- *   - Constructor Overloading (with/without description)
- *   - Encapsulation (private id, final setBasePrice validates input)
- *   - final method (setBasePrice — cannot be overridden)
- *   - Static counter (idCounter — auto-increments across all FoodItem instances)
+ * OOP CONCEPTS DEMONSTRATED:
+ *   - Abstract Class (abstract calculatePrice and getCategory enforce runtime polymorphic behavior)
+ *   - Inheritance Base (VegItem, NonVegItem, Beverage all extend this common abstraction)
+ *   - Comparable Interface (compareTo by price enables natural ordering & Java Stream sorting)
+ *   - Constructor Overloading (3 constructors with different argument profiles)
+ *   - Encapsulation & Data Validation (private fields, final setBasePrice prevents invalid negative pricing)
+ *   - final method (setBasePrice — prevents malicious override)
+ *   - Static field (idCounter — auto-incrementing ID generation across instances)
  */
 public abstract class FoodItem implements Comparable<FoodItem> {
 
@@ -21,22 +21,36 @@ public abstract class FoodItem implements Comparable<FoodItem> {
     private double basePrice;
     private Cuisine cuisine;
     private String description;
+    private String imageUrl;
 
     public FoodItem(String name, double basePrice, Cuisine cuisine) {
-        this(name, basePrice, cuisine, "No description available");
+        this(name, basePrice, cuisine, "Freshly prepared by culinary experts", null);
     }
 
     public FoodItem(String name, double basePrice, Cuisine cuisine, String description) {
+        this(name, basePrice, cuisine, description, null);
+    }
+
+    public FoodItem(String name, double basePrice, Cuisine cuisine, String description, String imageUrl) {
         this.id = ++idCounter;
         this.name = name;
         setBasePrice(basePrice);
         this.cuisine = cuisine;
         this.description = description;
+        this.imageUrl = imageUrl;
     }
 
     public abstract double calculatePrice();
 
     public abstract String getCategory();
+
+    public double getPrice() {
+        return calculatePrice();
+    }
+
+    public String getType() {
+        return getCategory();
+    }
 
     public int getId() {
         return id;
@@ -63,6 +77,14 @@ public abstract class FoodItem implements Comparable<FoodItem> {
 
     public String getDescription() {
         return description;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     @Override

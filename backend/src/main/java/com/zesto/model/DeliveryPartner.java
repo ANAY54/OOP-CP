@@ -26,6 +26,10 @@ public class DeliveryPartner extends User {
         return vehicle;
     }
 
+    public String getVehicleType() {
+        return vehicle;
+    }
+
     public boolean isAvailable() {
         return available;
     }

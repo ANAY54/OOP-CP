@@ -1,0 +1,36 @@
+# Java compiled artifacts
+*.class
+**/out/
+backend/out/
+backend/src/main/java/out/
+
+# Runtime generated data
+**/zesto_data/
+**/data/customers.dat
+**/data/catalog.json
+
+# Node / Expo / React Native
+node_modules/
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+.metro-health-check*
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+*.log
+
+# Secrets / Native signing
+.env
+.env*.local
+*.jks
+*.p8
+*.p12
+*.key
+*.pem
+*.mobileprovision

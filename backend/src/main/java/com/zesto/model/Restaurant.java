@@ -30,6 +30,7 @@ public class Restaurant implements Identifiable, Searchable {
     private final int reviewCount;
     private final String badge;
     private String imageUrl;
+    private Boolean pureVegOverride = null;
     private final List<FoodItem> menu = new ArrayList<>();
 
     // Short constructor with defaults (constructor overloading)
@@ -67,7 +68,12 @@ public class Restaurant implements Identifiable, Searchable {
     }
 
     public boolean isPureVeg() {
+        if (pureVegOverride != null) return pureVegOverride;
         return !menu.isEmpty() && menu.stream().noneMatch(item -> item instanceof NonVegItem);
+    }
+
+    public void setPureVeg(boolean pureVeg) {
+        this.pureVegOverride = pureVeg;
     }
 
     @Override

@@ -13,6 +13,7 @@ import com.zesto.model.Offer;
 import com.zesto.model.Order;
 import com.zesto.model.Restaurant;
 
+
 /**
  * OOP CONCEPTS:
  *   - Static utility class (private constructor, all-static methods)
@@ -33,6 +34,7 @@ public final class JsonMapper {
         m.put("veg",         !(item instanceof NonVegItem));
         m.put("cuisine",     item.getCuisine().getDisplayName());
         m.put("description", item.getDescription());
+        m.put("imageUrl",    item.getImageUrl());
         return m;
     }
 

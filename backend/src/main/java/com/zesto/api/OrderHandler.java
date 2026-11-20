@@ -46,7 +46,11 @@ public class OrderHandler extends BaseHandler {
         String path   = exchange.getRequestURI().getPath();
 
         if ("GET".equals(method)) {
-            listOrders(exchange);
+            if (path.endsWith("/rider")) {
+                getRiderLocation(exchange);
+            } else {
+                listOrders(exchange);
+            }
         } else if ("POST".equals(method) && path.endsWith("/preview")) {
             previewOrder(exchange);
         } else if ("POST".equals(method) && path.endsWith("/cancel")) {
@@ -56,6 +60,44 @@ public class OrderHandler extends BaseHandler {
         } else {
             sendJson(exchange, 405, error("Method not allowed"));
         }
+    }
+
+    // ------------------------------------------------------------------ rider
+    private void getRiderLocation(HttpExchange exchange) throws Exception {
+        String path = exchange.getRequestURI().getPath();
+        String[] parts = path.split("/");
+        int orderId = -1;
+        for (int i = 0; i < parts.length; i++) {
+            if ("orders".equalsIgnoreCase(parts[i]) && i + 1 < parts.length) {
+                try {
+                    orderId = Integer.parseInt(parts[i + 1]);
+                } catch (NumberFormatException ignored) {}
+                break;
+            }
+        }
+
+        if (orderId <= 0) {
+            sendJson(exchange, 400, error("Invalid order id in path /orders/{id}/rider"));
+            return;
+        }
+
+        Order order = orderService.findById(orderId).orElse(null);
+        if (order == null) {
+            sendJson(exchange, 404, error("Order #" + orderId + " not found"));
+            return;
+        }
+
+        Map<String, String> qp = queryParams(exchange);
+        double custLat = 0.0;
+        double custLon = 0.0;
+        try {
+            if (qp.containsKey("lat")) custLat = Double.parseDouble(qp.get("lat"));
+            if (qp.containsKey("lon")) custLon = Double.parseDouble(qp.get("lon"));
+        } catch (Exception ignored) {}
+
+        com.zesto.service.RiderSimulator sim = new com.zesto.service.RiderSimulator();
+        Map<String, Object> riderData = sim.simulateRiderPosition(order, custLat, custLon);
+        sendJson(exchange, 200, riderData);
     }
 
     // ------------------------------------------------------------------ list
@@ -79,7 +121,8 @@ public class OrderHandler extends BaseHandler {
         Restaurant restaurant = restaurantService.getById(toInt(body.get("restaurantId"), "restaurantId"));
         Cart       cart       = buildCart(body, restaurant);
 
-        Bill bill = orderService.previewBill(customer, cart, optionalString(body, "coupon"));
+        double deliveryFee = computeDeliveryFee(body, restaurant);
+        Bill bill = orderService.previewBill(customer, cart, optionalString(body, "coupon"), deliveryFee);
         sendJson(exchange, 200, billJson(bill));
     }
 
@@ -95,8 +138,24 @@ public class OrderHandler extends BaseHandler {
         PaymentMode mode = PaymentMode.valueOf(
                 (payment == null ? "UPI" : payment).toUpperCase());
 
-        Order order = orderService.placeOrder(customer, cart, optionalString(body, "coupon"), mode);
+        double deliveryFee = computeDeliveryFee(body, restaurant);
+        Order order = orderService.placeOrder(customer, cart, optionalString(body, "coupon"), mode, deliveryFee);
         sendJson(exchange, 201, JsonMapper.order(order));
+    }
+
+    private double computeDeliveryFee(Map<String, Object> body, Restaurant restaurant) {
+        if (body.containsKey("lat") && body.containsKey("lon")) {
+            try {
+                double userLat = Double.parseDouble(String.valueOf(body.get("lat")));
+                double userLon = Double.parseDouble(String.valueOf(body.get("lon")));
+                double distanceKm = com.zesto.util.DistanceCalculator.distance(
+                        userLat, userLon, restaurant.getLatitude(), restaurant.getLongitude());
+                return new com.zesto.service.PricingPolicy().calculateDeliveryFee(distanceKm);
+            } catch (Exception ignored) {
+                // fallback to default fee
+            }
+        }
+        return Bill.DEFAULT_DELIVERY_FEE;
     }
 
     // ------------------------------------------------------------------ cancel

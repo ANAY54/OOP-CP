@@ -39,10 +39,16 @@ public class ZestoServer {
         OrderService      orderService      = new OrderService(offerService, partnerService);
         CustomerService   customerService   = new CustomerService();
         ReviewService     reviewService     = new ReviewService();
+        com.zesto.service.AchievementService achievementService = new com.zesto.service.AchievementService();
 
         server = HttpServer.create(new InetSocketAddress(port), 0);
         server.createContext("/restaurants", new RestaurantHandler(restaurantService));
         server.createContext("/items",       new ItemHandler(restaurantService));
+        server.createContext("/dishes",      new DishHandler(restaurantService));
+        server.createContext("/meal-plan",   new MealPlanHandler(restaurantService));
+        server.createContext("/bill-split",  new BillSplitHandler());
+        server.createContext("/mood-dishes", new MoodHandler(restaurantService));
+        server.createContext("/achievements", new AchievementHandler(customerService, orderService, achievementService));
         server.createContext("/offers",      new OfferHandler(offerService));
         server.createContext("/login",       new LoginHandler(customerService));
         server.createContext("/profile",     new ProfileHandler(customerService));
@@ -59,6 +65,12 @@ public class ZestoServer {
         System.out.println("| GET  /restaurants                            |");
         System.out.println("| GET  /restaurants/{id}                       |");
         System.out.println("| GET  /items?q=                               |");
+        System.out.println("| GET  /dishes/{id}/recipe                     |");
+        System.out.println("| POST /meal-plan                              |");
+        System.out.println("| POST /bill-split                             |");
+        System.out.println("| GET  /mood-dishes?mood=                      |");
+        System.out.println("| GET  /achievements?email=                    |");
+        System.out.println("| GET  /orders/{id}/rider                      |");
         System.out.println("| GET  /offers                                 |");
         System.out.println("| POST /login                                  |");
         System.out.println("| GET|POST /profile                            |");

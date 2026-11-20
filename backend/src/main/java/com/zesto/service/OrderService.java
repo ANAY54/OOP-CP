@@ -46,13 +46,23 @@ public class OrderService {
     // ------------------------------------------------------------------ public API
     public Bill previewBill(Customer customer, Cart cart, String couponCode)
             throws EmptyCartException, InvalidCouponException {
+        return previewBill(customer, cart, couponCode, Bill.DEFAULT_DELIVERY_FEE);
+    }
+
+    public Bill previewBill(Customer customer, Cart cart, String couponCode, double deliveryFee)
+            throws EmptyCartException, InvalidCouponException {
         if (cart.isEmpty()) throw new EmptyCartException();
         Offer offer = resolveOffer(cart, couponCode);
         double couponDiscount = offer == null ? 0 : offer.calculateDiscount(cart.getSubtotal());
-        return Bill.calculate(customer, cart.getSubtotal(), couponDiscount);
+        return Bill.calculate(customer, cart.getSubtotal(), couponDiscount, deliveryFee);
     }
 
     public Order placeOrder(Customer customer, Cart cart, String couponCode, PaymentMode mode)
+            throws EmptyCartException, InvalidCouponException {
+        return placeOrder(customer, cart, couponCode, mode, Bill.DEFAULT_DELIVERY_FEE);
+    }
+
+    public Order placeOrder(Customer customer, Cart cart, String couponCode, PaymentMode mode, double deliveryFee)
             throws EmptyCartException, InvalidCouponException {
 
         if (cart.isEmpty()) throw new EmptyCartException();
@@ -66,7 +76,7 @@ public class OrderService {
         double couponDiscount = offer == null ? 0 : offer.calculateDiscount(cart.getSubtotal());
         String appliedCode    = offer == null ? null : offer.getCode();
 
-        Order order = new Order(customer, cart, couponDiscount, appliedCode, mode);
+        Order order = new Order(customer, cart, couponDiscount, appliedCode, mode, deliveryFee);
 
         // Assign a delivery partner (synchronized inside DeliveryPartnerService)
         Optional<DeliveryPartner> partner = partnerService.assignAvailable();

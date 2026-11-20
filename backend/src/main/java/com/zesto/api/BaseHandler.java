@@ -1,11 +1,5 @@
 package com.zesto.api;
 
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-import com.zesto.exception.RestaurantNotFoundException;
-import com.zesto.exception.ZestoException;
-import com.zesto.util.JsonWriter;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URLDecoder;
@@ -13,11 +7,17 @@ import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+import com.zesto.exception.RestaurantNotFoundException;
+import com.zesto.exception.ZestoException;
+import com.zesto.util.JsonWriter;
+
 public abstract class BaseHandler implements HttpHandler {
 
     protected abstract void process(HttpExchange exchange) throws Exception;
 
-    @Override
+    
     public final void handle(HttpExchange exchange) throws IOException {
         try {
             exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
